@@ -2,6 +2,7 @@ class ApplicationController < ActionController::API
   JSONAPI_CONTENT_TYPE = "application/vnd.api+json".freeze
 
   include ErrorHandler
+  include Authenticatable
 
   private
 
