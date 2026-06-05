@@ -3,4 +3,6 @@ Rails.application.routes.draw do
 
   resources :geolocations, only: [ :index, :create ]
   delete "geolocations", to: "geolocations#destroy"
+
+  match "*path", to: "errors#not_found", via: :all
 end

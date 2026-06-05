@@ -1,0 +1,19 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bash -c "bundle check || bundle install; bin/rails db:prepare db:seed && bin/rails server -b 0.0.0.0"
+    ports:
+      - "3000:3000"
+    environment:
+      RAILS_ENV: development
+      GEOLOCATION_PROVIDER: ${GEOLOCATION_PROVIDER:-fake}
+      IPSTACK_API_KEY: ${IPSTACK_API_KEY:-}
+      API_TOKEN: ${API_TOKEN:-secret-demo-token}
+    volumes:
+      - .:/rails
+      - bundle:/usr/local/bundle
+
+volumes:
+  bundle:
