@@ -58,6 +58,30 @@ RSpec.describe "Geolocations API", type: :request do
       expect(response_json["errors"].first["detail"]).to match(/not valid JSON/)
     end
 
+    it "returns 400 for a JSON body without a Content-Type header" do
+      post "/geolocations", params: '{"ip":"8.8.8.8"}'
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "returns 400 for a JSON array body" do
+      post "/geolocations", params: [ "8.8.8.8" ].to_json, headers: json_headers
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "returns 422 for a numeric ip value" do
+      post "/geolocations", params: { ip: 12345 }.to_json, headers: json_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "returns 400 for null values" do
+      post "/geolocations", params: { ip: nil, url: nil }.to_json, headers: json_headers
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it "returns 422 for an invalid IP" do
       post "/geolocations", params: { ip: "999.999.999.999" }.to_json, headers: json_headers
 

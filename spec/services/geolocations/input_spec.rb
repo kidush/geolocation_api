@@ -22,6 +22,18 @@ RSpec.describe Geolocations::Input do
       expect { described_class.new(ip: "not-an-ip") }
         .to raise_error(Geolocations::InvalidInputError)
     end
+
+    it "rejects non-string input without crashing" do
+      expect { described_class.new(ip: 12345) }
+        .to raise_error(Geolocations::InvalidInputError)
+      expect { described_class.new(ip: [ "8.8.8.8" ]) }
+        .to raise_error(Geolocations::InvalidInputError)
+    end
+
+    it "rejects an absurdly long string" do
+      expect { described_class.new(ip: "1" * 10_000) }
+        .to raise_error(Geolocations::InvalidInputError)
+    end
   end
 
   describe "url input" do
@@ -61,6 +73,11 @@ RSpec.describe Geolocations::Input do
     it "rejects input without a host" do
       expect { described_class.new(url: "https://") }
         .to raise_error(Geolocations::InvalidInputError)
+    end
+
+    it "rejects a non-ASCII (IDN) URL gracefully" do
+      expect { described_class.new(url: "https://münchen.de") }
+        .to raise_error(Geolocations::InvalidInputError, /not a valid URL/)
     end
 
     it "raises when the host cannot be resolved" do

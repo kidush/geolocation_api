@@ -7,8 +7,8 @@ module Geolocations
     attr_reader :ip, :url
 
     def initialize(ip: nil, url: nil, resolve_dns: true)
-      ip = ip.presence
-      url = url.presence
+      ip = ip.to_s.presence
+      url = url.to_s.presence
 
       raise BadRequestError, "Provide either an ip or a url parameter" if ip.blank? && url.blank?
       raise BadRequestError, "Provide either an ip or a url parameter, not both" if ip.present? && url.present?
