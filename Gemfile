@@ -35,6 +35,12 @@ gem "image_processing", "~> 1.2"
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 # gem "rack-cors"
 
+# Serialize API responses following the JSON:API specification
+gem "jsonapi-serializer"
+
+# HTTP client for external geolocation providers
+gem "faraday"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -49,5 +55,17 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   gem "rspec-rails", "~> 8.0.0"
+
+  # Load environment variables from .env in development and test
+  gem "dotenv-rails"
+
+  gem "factory_bot_rails"
+end
+
+group :test do
+  # Stub and assert external HTTP requests in specs
+  gem "webmock"
+
+  gem "shoulda-matchers"
 end
 
