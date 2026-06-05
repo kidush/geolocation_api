@@ -8,7 +8,7 @@ A RESTful JSON:API service that stores geolocation data for IP addresses and URL
 docker compose up --build
 ```
 
-That's it. The API is served on `http://localhost:3000`, the database is created and seeded with sample data, and no external account or API key is required (see [Providers](#providers)).
+That's it. The API is served on `http://localhost:3000`, the database is created and seeded with sample data, and no external account or API key is required — it starts with the offline `fake` provider. To test against the real ipstack service instead, see [Choosing a provider](#choosing-a-provider-fake-vs-ipstack).
 
 ```sh
 TOKEN="secret-demo-token"
@@ -38,11 +38,41 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:3000/geolocat
 
 > **Why does the container run in production mode?** The image is production-built (development/test gems are excluded), and production config is what makes error handling observable: in development mode Rails renders HTML debug pages for exceptions, while in production the API returns the structured JSON:API errors documented below.
 
-### Using the real ipstack provider
+## Choosing a provider: fake vs ipstack
+
+The application talks to a geolocation provider selected by the `GEOLOCATION_PROVIDER` environment variable. **Both modes are fully testable** — same endpoints, same behavior; only the data source changes.
+
+### Mode 1 — `fake` (the default, no setup)
+
+`docker compose up` runs this mode out of the box. The fake provider returns deterministic, offline data — no ipstack account, no API key, no network calls. Any IP can be POSTed; well-known IPs (`8.8.8.8`, `1.1.1.1`) return realistic data, anything else returns a fixed fallback (Berlin, DE). Ideal for verifying the API itself: endpoints, validation, error handling, auth.
+
+### Mode 2 — `ipstack` (real lookups)
+
+Requires a free key from [ipstack.com](https://ipstack.com/). Two ways to enable:
+
+**With a `.env` file** (recommended — Docker Compose picks it up automatically):
+
+```sh
+cp .env.example .env
+# edit .env:
+#   GEOLOCATION_PROVIDER=ipstack
+#   IPSTACK_API_KEY=<your key>
+docker compose up
+```
+
+**Or inline:**
 
 ```sh
 GEOLOCATION_PROVIDER=ipstack IPSTACK_API_KEY=your_key docker compose up
 ```
+
+POSTing an IP now returns real geolocation data from ipstack.
+
+### How to tell which mode is active
+
+POST any IP that isn't `8.8.8.8`/`1.1.1.1` and look at the response: the fake provider always answers with `"city":"Berlin","country_code":"DE"`; ipstack returns the IP's real location. (Already-seeded records keep whatever data they were created with — `GET` never re-fetches.)
+
+> Note: switching providers does not clear stored records. To re-test the same IP in another mode, `DELETE` it first, then `POST` again.
 
 ## API
 
@@ -81,14 +111,11 @@ All errors are JSON:API error objects: `{"errors":[{"status":"…","title":"…"
 | Provider down / timed out / rate-limited / bad key | `502` |
 | Anything unexpected | `500` (JSON, never an HTML error page) |
 
-## Providers
+## Provider architecture
 
-The geolocation provider is an adapter behind a small interface (`Providers::Base#lookup(ip) → Providers::Result`), selected at runtime via `GEOLOCATION_PROVIDER`:
+Each provider is an adapter behind a small interface (`Providers::Base#lookup(ip) → Providers::Result`); the rest of the application never sees provider-specific field names or errors. `fake` and `ipstack` ship out of the box (see [Choosing a provider](#choosing-a-provider-fake-vs-ipstack)).
 
-- `fake` (default) — deterministic offline data; no account, no network. Used by Docker and the test suite.
-- `ipstack` — real lookups via ipstack; requires `IPSTACK_API_KEY`.
-
-Adding a provider = implement `Providers::Base`, map the payload into `Providers::Result`, and register the class in `Providers::REGISTRY`. Nothing else in the application changes.
+Adding a provider = implement `Providers::Base`, map the payload into `Providers::Result`, and register the class in `Providers::REGISTRY`. Nothing else in the application changes — the fake provider exists precisely as proof of that.
 
 ```
 app/lib/providers.rb        # registry, error taxonomy
@@ -106,7 +133,7 @@ app/lib/providers/fake.rb
 | `IPSTACK_API_KEY` | — | Required when provider is `ipstack` |
 | `API_TOKEN` | unset (`secret-demo-token` in Docker) | Bearer token; auth is disabled when unset |
 
-Copy `.env.example` to `.env` for local development.
+Copy `.env.example` to `.env` to configure any setup: both Docker Compose files interpolate it automatically, and local development loads it via dotenv.
 
 ## Local development
 
