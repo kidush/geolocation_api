@@ -74,10 +74,20 @@ POST any IP that isn't `8.8.8.8`/`1.1.1.1` and look at the response: the fake pr
 
 > Note: switching providers does not clear stored records. To re-test the same IP in another mode, `DELETE` it first, then `POST` again.
 
+## Authentication
+
+Token auth has two sides:
+
+- **Server side** — the `API_TOKEN` environment variable (set in `docker-compose.yml`, defaulting to `secret-demo-token`) tells the application which token to accept.
+- **Client side** — every request presents a token via the `Authorization: Bearer <token>` header.
+
+The application compares the two (constant-time); a mismatch or missing header returns a `401` JSON:API error. If `API_TOKEN` is unset on the server, authentication is disabled and all requests pass — convenient for local development, which is why `bin/rails server` without a `.env` requires no header.
+
+`GET /up` (health check) is always public.
+
 ## API
 
-All endpoints (except `GET /up`) require a bearer token:
-`Authorization: Bearer <API_TOKEN>` (default in Docker: `secret-demo-token`).
+All endpoints (except `GET /up`) require the bearer token described above.
 
 Responses follow the [JSON:API](https://jsonapi.org/) specification. Request bodies are accepted both as plain JSON (`{"ip": "8.8.8.8"}`) and as a JSON:API envelope (`{"data": {"type": "geolocations", "attributes": {"ip": "8.8.8.8"}}}`).
 
